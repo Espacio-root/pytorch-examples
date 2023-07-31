@@ -348,3 +348,7 @@ venv/
 # Log files
 *.log
 sweep/
+
+# etc
+test.py
+/**/data
