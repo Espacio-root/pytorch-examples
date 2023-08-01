@@ -178,7 +178,7 @@ class Helper:
         if len(test_losses) < patience:
             return False
         else:
-            return test_losses.index(max(test_losses)) < len(test_losses) - patience
+            return test_losses.index(min(test_losses)) < len(test_losses) - patience - 1
 
     @staticmethod
     def load_model(model, path):
@@ -244,4 +244,6 @@ if __name__ == '__main__':
         if Helper.early_stop(test_losses):
             print(f'Early Stopping at epoch {epoch + 1}')
             break
+
+    Helper.visualize_incorrect()
 
