@@ -240,6 +240,7 @@ if __name__ == '__main__':
         if test_loss < best_loss:
             Helper.delete_files_in_path(BEST_MODEL_DIR)
             Helper.save_model(model, rf'{BEST_MODEL_DIR}/epoch-{epoch+1}--loss-{test_loss:.3f}--accuracy-{acc*100}.pt')
+            best_loss = test_loss
 
         if Helper.early_stop(test_losses):
             print(f'Early Stopping at epoch {epoch + 1}')

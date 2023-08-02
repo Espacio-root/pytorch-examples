@@ -25,6 +25,8 @@ class Data:
     def __init__(self, batch_size=64, test_split=0.2):
         self.batch_size = batch_size
         self.test_split = test_split
+        class_names = os.listdir(os.path.join(DATA_DIR, 'train'))
+        self.class_names = [name.split('-')[1] for name in class_names]
 
     def download(self, dir):
         tar_path = os.path.join(os.getcwd(), dir, 'images.tar')
@@ -186,13 +188,10 @@ class Helper:
 
     @staticmethod
     def get_best_loss():
-        if not os.path.exists(BEST_MODEL_DIR):
-            return float('inf')
-
-        if len(os.listdir(BEST_MODEL_DIR)) > 0:
+        if os.path.exists(BEST_MODEL_DIR) and len(os.listdir(BEST_MODEL_DIR)) > 0:
             return float(os.listdir(BEST_MODEL_DIR)[0].split('--loss-')[1].split('--')[0])
         else:
-            return 0.0
+            return float('inf')
 
     @staticmethod
     def early_stop(test_losses, patience=3):
@@ -207,24 +206,42 @@ class Helper:
         return model
     
     @staticmethod
-    def visualize(model, test_loader, num_images=16, incorrect=False):
+    def visualize(model, num_images=16, incorrect=False):
         model.eval()
-        images_so_far = 0
-        fig = plt.figure()
+        total = 0
+        correct = 0
+        
+        if num_images % 4 != 0: raise ValueError('num_images must be divisible by 4')
+
+        data = Data()
+        _, test_loader = data.generate()
+        class_names = data.class_names
+
+        _, ax = plt.subplots(num_images // 4, 4, figsize=(20, 10))
 
         with torch.no_grad():
-            for i, (data, target) in enumerate(test_loader):
+            for data, target in test_loader:
                 output = model(data)
                 probabilities = F.softmax(output, dim=1)
 
                 for j in range(data.size()[0]):
-                    images_so_far += 1
-                    ax = plt.subplot(num_images//4, 4, images_so_far)
-                    ax.axis('off')
-                    ax.set_title(f'Predicted: {probabilities[j].argmax(dim=0)} | Actual: {target[j]}')
-                    Helper.imshow(data[j])
+                    predicted = class_names[probabilities[j].argmax(dim=0)]
+                    actual = class_names[target[j]]
+                    
+                    if predicted == actual:
+                        correct += 1
+                        if incorrect:
+                            continue
 
-                    if images_so_far == num_images:
+                    ax[total // 4, total % 4].imshow(data[j].permute(1, 2, 0).numpy())
+                    ax[total // 4, total % 4].set_title(f'Predicted: {predicted}\nActual: {actual}', fontsize=10)
+                    ax[total // 4, total % 4].axis('off')
+
+                    total += 1
+                    if total == num_images:
+                        plt.suptitle(f'Accuracy: {correct}/{num_images} = {correct/num_images * 100:.2f}%')
+                        plt.tight_layout()
+                        plt.show()
                         return
                     
 BEST_MODEL_DIR = os.path.join(os.getcwd(), BEST_MODEL_DIR)
@@ -232,32 +249,37 @@ if not os.path.exists(BEST_MODEL_DIR): os.mkdir(BEST_MODEL_DIR)
 
 
 if __name__ == '__main__':
-    data = Data()
-    data.download(DATA_DIR)
-    data.organize_dirs(os.path.join(DATA_DIR, 'Images'))
-    train_loader, test_loader = data.generate()
+    # data = Data()
+    # data.download(DATA_DIR)
+    # data.organize_dirs(os.path.join(DATA_DIR, 'Images'))
+    # train_loader, test_loader = data.generate()
 
-    model = Model()
-    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    # model = Model()
+    # optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-    trainer = Trainer(model, optimizer)
+    # trainer = Trainer(model, optimizer)
 
-    test_losses = []
-    best_loss = Helper.get_best_loss()
-    best_accuracy = 0.0
+    # test_losses = []
+    # best_loss = Helper.get_best_loss()
+    # best_accuracy = 0.0
 
-    for epoch in range(EPOCHS):
-        trainer.train(train_loader, epoch)
-        test_loss, accuracy = trainer.test(test_loader)
-        test_losses.append(test_loss)
+    # for epoch in range(EPOCHS):
+    #     trainer.train(train_loader, epoch+1)
+    #     test_loss, accuracy = trainer.test(test_loader)
+    #     test_losses.append(test_loss)
 
-        if test_loss < best_loss:
-            Helper.delete_files_in_path(BEST_MODEL_DIR)
-            Helper.save_model(
-                model, rf'{BEST_MODEL_DIR}/epoch-{epoch+1}--loss-{test_loss:.3f}--accuracy-{accuracy*100}.pt')
+    #     if test_loss < best_loss:
+    #         Helper.delete_files_in_path(BEST_MODEL_DIR)
+    #         Helper.save_model(
+    #             model, rf'{BEST_MODEL_DIR}/epoch-{epoch+1}--loss-{test_loss:.3f}--accuracy-{accuracy*100}.pt')
+    #         best_loss = test_loss
 
-        if Helper.early_stop(test_losses):
-            print(f'Early Stopping at epoch {epoch + 1}')
-            break
+    #     if Helper.early_stop(test_losses):
+    #         print(f'Early Stopping at epoch {epoch + 1}')
+    #         break
 
-        print(f'Epoch={epoch+1}\tLoss={test_loss:.2f}\tAccuracy={accuracy*100:.2f}')
+    #     print(f'Epoch={epoch+1}\tLoss={test_loss:.2f}\tAccuracy={accuracy*100:.2f}%')
+    model = Model(120)
+    pth = os.listdir(BEST_MODEL_DIR)[0]
+    model = Helper.load_model(model, os.path.join(BEST_MODEL_DIR, pth))
+    Helper.visualize(model=model, num_images=16)
