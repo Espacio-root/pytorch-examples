@@ -249,37 +249,38 @@ if not os.path.exists(BEST_MODEL_DIR): os.mkdir(BEST_MODEL_DIR)
 
 
 if __name__ == '__main__':
-    # data = Data()
-    # data.download(DATA_DIR)
-    # data.organize_dirs(os.path.join(DATA_DIR, 'Images'))
-    # train_loader, test_loader = data.generate()
+    data = Data()
+    data.download(DATA_DIR)
+    data.organize_dirs(os.path.join(DATA_DIR, 'Images'))
+    train_loader, test_loader = data.generate()
 
-    # model = Model()
-    # optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    model = Model()
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-    # trainer = Trainer(model, optimizer)
+    trainer = Trainer(model, optimizer)
 
-    # test_losses = []
-    # best_loss = Helper.get_best_loss()
-    # best_accuracy = 0.0
+    test_losses = []
+    best_loss = Helper.get_best_loss()
+    best_accuracy = 0.0
 
-    # for epoch in range(EPOCHS):
-    #     trainer.train(train_loader, epoch+1)
-    #     test_loss, accuracy = trainer.test(test_loader)
-    #     test_losses.append(test_loss)
+    for epoch in range(EPOCHS):
+        trainer.train(train_loader, epoch+1)
+        test_loss, accuracy = trainer.test(test_loader)
+        test_losses.append(test_loss)
 
-    #     if test_loss < best_loss:
-    #         Helper.delete_files_in_path(BEST_MODEL_DIR)
-    #         Helper.save_model(
-    #             model, rf'{BEST_MODEL_DIR}/epoch-{epoch+1}--loss-{test_loss:.3f}--accuracy-{accuracy*100}.pt')
-    #         best_loss = test_loss
+        if test_loss < best_loss:
+            Helper.delete_files_in_path(BEST_MODEL_DIR)
+            Helper.save_model(
+                model, rf'{BEST_MODEL_DIR}/epoch-{epoch+1}--loss-{test_loss:.3f}--accuracy-{accuracy*100}.pt')
+            best_loss = test_loss
 
-    #     if Helper.early_stop(test_losses):
-    #         print(f'Early Stopping at epoch {epoch + 1}')
-    #         break
+        if Helper.early_stop(test_losses):
+            print(f'Early Stopping at epoch {epoch + 1}')
+            break
 
-    #     print(f'Epoch={epoch+1}\tLoss={test_loss:.2f}\tAccuracy={accuracy*100:.2f}%')
-    model = Model(120)
-    pth = os.listdir(BEST_MODEL_DIR)[0]
-    model = Helper.load_model(model, os.path.join(BEST_MODEL_DIR, pth))
-    Helper.visualize(model=model, num_images=16)
+        print(f'Epoch={epoch+1}\tLoss={test_loss:.2f}\tAccuracy={accuracy*100:.2f}%')
+    
+    # model = Model(120)
+    # pth = os.listdir(BEST_MODEL_DIR)[0]
+    # model = Helper.load_model(model, os.path.join(BEST_MODEL_DIR, pth))
+    # Helper.visualize(model=model, num_images=16)

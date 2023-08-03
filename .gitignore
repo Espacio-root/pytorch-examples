@@ -350,5 +350,8 @@ venv/
 sweep/
 
 # etc
-test.py
+/**/test.*
 /**/data
+/**/raw_images
+/**/raw_modified_images
+/**/dataset_root
